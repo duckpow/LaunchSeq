@@ -73,7 +73,7 @@ LaunchSeq : Launcher {
 			// \amp takes the full range 0-127 instead of midi's 0-1
 			Event.addEventType(\midiSeqOut, {
 				~midiout.noteOn(~chan,~midinote,~amp);
-				preIndex = (~midinote-1)%8;
+				preIndex = (~midinote-1)%~steps;
 				track = (~midinote/16).floor;
 				if(~notesArray[track][preIndex].asBoolean,{
 					~midiout.noteOn(~chan,((track*16)+preIndex),127);
@@ -85,19 +85,16 @@ LaunchSeq : Launcher {
 	}
 
 	//construct with args and
-	*new{|tempo = 120, startNote = 0,steps=8, stepSize=0.25|
-		^super.new.init(tempo, startNote, steps, stepSize);
+	*new{|tempo = 120|
+		^super.new.init(tempo);
 	}
 
-	init{arg t, sN, st, sS;
+	init{arg t;
 		// not sure if needed
-		startNote = sN;
-		steps = st;
-		stepSize = sS;
-		if((steps > 8),{
-			Error("Not yet supported").throw;
-		});
-		led = Array.fill(8, {arg i; i+startNote}); //Perhaps obsolete?
+		//startNote = sN;
+		steps = 8!8;
+		// individual stepsizes for each track.
+		stepSize = Array.fill(8,{0.25});
 
 		//set tempo of clock
 		TempoClock.default.tempo = t/60;
@@ -152,6 +149,16 @@ LaunchSeq : Launcher {
 	tempo{arg bpm;
 		TempoClock.default.tempo = (bpm/60);
 	}
+	// set seq length
+	seqLength {arg length, track;
+		if(track.isNil,{
+			Task({steps = length!8}).play(quant: [1,0.1]);
+			"I got triggered".postln;
+		},{
+			steps[track] = length;
+			"I also got triggered".postln;
+		})
+	}
 
 	// Create sequencer
 	sequencer {arg nn, l=8;
@@ -183,13 +190,13 @@ LaunchSeq : Launcher {
 			// array to hold arguments for Pbind. Change size?
 			arguments = Array.new(16);
 			arguments = arguments.addAll([\instrument, synthName]);
-			arguments = arguments.addAll([\on, Pif(Pseq(arr,inf).coin,1,Rest)]);
+			arguments = arguments.addAll([\on, Pn(Pfin({steps[track]},Pif(Pseq(arr,inf).coin,1,Rest)))]);
 			arguments = arguments.addAll(args);
-			arguments = arguments.addAll([\dur, stepSize]);
+			arguments = arguments.addAll([\dur, stepSize[track]]);
 			// Stor Pbind in instruments array
 			instruments[track] = Pbind(*arguments);
 			// Create sequencer
-			this.bindSequencer(track,8,Array.fill(8,{arg i; i+(16*track)}))
+			this.bindSequencer(track,steps[track],Array.fill(8,{arg i; i+(16*track)}))
 		});
 	}
 
@@ -202,11 +209,12 @@ LaunchSeq : Launcher {
 			\type, \midiSeqOut,
 			\midiout, out,
 			\notesArray, notes,
+			\steps, Pfunc({steps[track]}),
 			\chan, 0,
-			\midinote, Pn(Pser(arr, length),inf),
+			\midinote, Pn(Pfin({steps[track]},Pseq(arr, inf)),inf),
 			\amp, 32, // set color
 			\stretch, 1,
-			\dur, stepSize
+			\dur, Pfunc({stepSize[track]})
 		),instruments[track]]).asEventStreamPlayer; //stored as eventstream but not played
 	}
 
