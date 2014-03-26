@@ -149,6 +149,7 @@ LaunchSeq : Launcher {
 		TempoClock.default.tempo = (bpm/60);
 	}
 
+	// change dur/delta of Pbinds by a factor
 	changeTempoFactor{arg factor, track;
 		var temp;
 		if(track.isNil,{
@@ -159,14 +160,22 @@ LaunchSeq : Launcher {
 		});
 	}
 
+	// Set dur/delta of Pbinds.
+	setTempoSubDiv{arg fraction, track;
+		if(track.isNil,{
+			stepSize = fraction!8;
+		},{
+			stepSize[track]=fraction;
+		});
+	}
+
+
 	// set seq length
 	seqLength {arg length, track;
 		if(track.isNil,{
 			Task({steps = length!8}).play(quant: [1,0.1]);
-			"I got triggered".postln;
 		},{
-			steps[track] = length;
-			"I also got triggered".postln;
+			Task({steps[track] = length}).play(quant: [1,0.1]);
 		})
 	}
 
@@ -189,7 +198,7 @@ LaunchSeq : Launcher {
 		var arguments;
 		var arr;
 		//Check if track is active
-		if(players[track].isPlaying,{"Stop track befor changing sounds".postln},{
+		if(players[track].isPlaying,{"Stop track before changing sounds".postln},{
 			//Check arguments
 			args.postln;
 			if(args.size.odd,{"parameters and initial values must form a even array".postln; ^nil},{});
