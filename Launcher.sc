@@ -90,10 +90,9 @@ LaunchSeq : Launcher {
 	}
 
 	init{arg t;
-		// not sure if needed
-		//startNote = sN;
+		//Num steps for each track
 		steps = 8!8;
-		// individual stepsizes for each track.
+		// individual stepsizes for each track. Starts at quaternotes
 		stepSize = Array.fill(8,{0.25});
 
 		//set tempo of clock
@@ -149,6 +148,17 @@ LaunchSeq : Launcher {
 	tempo{arg bpm;
 		TempoClock.default.tempo = (bpm/60);
 	}
+
+	changeTempoFactor{arg factor, track;
+		var temp;
+		if(track.isNil,{
+			stepSize.do{arg item, i; temp = item[i]*factor; stepSize[i] = temp;}
+		},{
+			temp = stepSize[track]*factor;
+			stepSize[track] = temp;
+		});
+	}
+
 	// set seq length
 	seqLength {arg length, track;
 		if(track.isNil,{
