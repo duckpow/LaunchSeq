@@ -1,12 +1,14 @@
 //Launcher/Stepsequenser class for launchpad and supercollider 3.6+
 //Made by Duckpow in 2014
 //Use at own risk
+//Only tested on a OSX 10.9 & SuperCollider 3.6
 
 // Superclass. Main purpose; midi communication.
 Launcher {
-	var <in1;
-	var <in2;
+	var <inLP;
 	var <out;
+	var <topRow;
+	var <buttonHeld;
 
 	// call super and init function
 	*new{
@@ -21,7 +23,29 @@ Launcher {
 
 		// Search for devices and connect
 		MIDIIn.connectAll;
+		inLP = MIDIIn.findPort("Launchpad", "Launchpad");
 		out = MIDIOut.newByName("Launchpad", "Launchpad"); //.latency_(0.01);
+
+		//TOPROW button in func:
+		//Init all buttons off.
+		topRow = false!8;
+		buttonHeld = false;
+		//CC func
+		MIDIdef.cc(\someName,{|val,num,chan,src|
+			var button;
+			button = num-104; // CC msgs start at 104
+			//Simulate notOn/noteOff
+			if(val != 0,{
+				buttonHeld = true;
+				out.control(0,num,127);
+				topRow[button] = true;
+			},{
+				buttonHeld = false;
+				out.control(0,num,0);
+				topRow[button] = false;
+			})
+		},srcID: inLP.uid);
+
 		// Show the launchpad works
 		this.allLEDOn;
 		this.allLEDOff;
@@ -51,10 +75,11 @@ LaunchSeq : Launcher {
 	var <players;
 	var <instruments;
 	var <notes;
+	var <subDivs;
 
-	// "Borrowed" from Axel Baesler SoftStepSeq.sc
+	// "Borrowed" idea from Axel Baesler's SoftStepSeq.sc
 	// This is genious!
-	*initClass{ // add Event type callMethod to default Event
+	*initClass{ // add Event types to default Event
 		var preIndex;
 		var track;
 
@@ -92,8 +117,10 @@ LaunchSeq : Launcher {
 	init{arg t;
 		//Num steps for each track
 		steps = 8!8;
+		// Posible sub division
+		subDivs = [1/2,1/3,1/4,1/6,1/8,1/12,1/16,1/32];
 		// individual stepsizes for each track. Starts at quaternotes
-		stepSize = Array.fill(8,{0.25});
+		stepSize = Array.fill(8,{subDivs[2]});
 
 		//set tempo of clock
 		TempoClock.default.tempo = t/60;
@@ -120,23 +147,35 @@ LaunchSeq : Launcher {
 					temp.play(quant:1);
 				});
 			});
-		},[8,24,40,56,72,88,104,120],0);
+		},[8,24,40,56,72,88,104,120],0); //Set to only register rightmost horizontal row.
 
-		// MIDI grid interface. Sets note's on/off
+		// MIDI grid interface. Sets note's on/off + tempo + length
 		midiInterface = MIDIdef.noteOn(\mInterface,{
 			arg vel, nn, chan, src;
 			var index;
 			var track;
-			if([8,24,40,56,72,88,104,120].detect({ arg item, i; item == nn })==nil,{
+			if([8,24,40,56,72,88,104,120].detect({ arg item, i; item == nn })==nil,{ //Filter out rightmost horizontal row
 				index = nn%16;
 				track = (nn/16).floor;
-				if(notes[track][index].asBoolean,{
-					notes[track][index] = 0;
-					out.noteOn(chan,nn,0);
-				},{
-					notes[track][index] = 1;
-					out.noteOn(chan,nn,127);
+				// Check if toprow buttons are held
+				if(buttonHeld,{ //Change params
+					if(topRow[0],{
+						this.setTempoSubDiv(subDivs[index],track);
+					});
+					if(topRow[1],{
+						this.seqLength((index+1),track);
+					});
+
+					},{ //Normal operation
+					if(notes[track][index].asBoolean,{
+						notes[track][index] = 0;
+						out.noteOn(chan,nn,0);
+						},{
+						notes[track][index] = 1;
+						out.noteOn(chan,nn,127);
+					});
 				});
+
 			},{});
 		},chan: 0);
 
@@ -168,7 +207,6 @@ LaunchSeq : Launcher {
 			stepSize[track]=fraction;
 		});
 	}
-
 
 	// set seq length
 	seqLength {arg length, track;
@@ -211,7 +249,7 @@ LaunchSeq : Launcher {
 			arguments = arguments.addAll([\instrument, synthName]);
 			arguments = arguments.addAll([\on, Pn(Pfin({steps[track]},Pif(Pseq(arr,inf).coin,1,Rest)))]);
 			arguments = arguments.addAll(args);
-			arguments = arguments.addAll([\dur, stepSize[track]]);
+			arguments = arguments.addAll([\dur, Pfunc({stepSize[track]})]);
 			// Stor Pbind in instruments array
 			instruments[track] = Pbind(*arguments);
 			// Create sequencer
