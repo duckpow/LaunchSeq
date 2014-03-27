@@ -73,7 +73,7 @@ LaunchSeq : Launcher {
 			// \amp takes the full range 0-127 instead of midi's 0-1
 			Event.addEventType(\midiSeqOut, {
 				~midiout.noteOn(~chan,~midinote,~amp);
-				preIndex = (~midinote-1)%~steps;
+				preIndex = ((~midinote%16)-1)%~steps;
 				track = (~midinote/16).floor;
 				if(~notesArray[track][preIndex].asBoolean,{
 					~midiout.noteOn(~chan,((track*16)+preIndex),127);
