@@ -1,0 +1,62 @@
+TITLE:: Launcher
+summary:: Class for handeling communication between SuperCollider and Launchpad
+categories:: Custom class
+related:: LaunchSeq
+
+DESCRIPTION::
+Initializes MIDI if its not already. Creates one MIDIIn connection and one MIDIout.
+NOTE:: This Class is not designed to be used on it's own.
+::
+
+classmethods::
+private:: catergories
+METHOD:: new
+
+(Initializes Launcher.)
+
+
+INSTANCEMETHODS::
+
+METHOD:: initLauncher
+Initialization method. Called when the class is created.
+
+METHOD:: allLEDOn
+Convinience method for turning on all LED's
+
+METHOD:: allLEDOff
+Convinience method (panic button) for turning off all LED's
+
+METHOD:: buttonHeld
+Returns true if any of the top row buttons are held.
+
+returns:: Boolean
+
+METHOD:: inLP
+Holds a MIDIIn for the Launchpad
+
+returns:: a MIDIIn
+
+METHOD:: out
+Holds a MIDIout for the Launchpad
+
+returns:: a MIDIout
+
+METHOD:: topRow
+
+
+EXAMPLES::
+Initialization:
+code::
+a = Launcher.new;
+::
+
+Turning LED's on/off
+code::
+a.allLEDOn;
+a.allLEDOff;
+::
+
+Getting srcID for the Launchpad
+code::
+a.inLP.uid;
+::

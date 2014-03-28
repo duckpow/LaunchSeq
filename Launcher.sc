@@ -67,8 +67,6 @@ LaunchSeq : Launcher {
 	var <startNote;
 	var <steps;
 	var <stepSize;
-	var <led;
-	var <player;
 	var <clock;
 	var <midiPlayer;
 	var <midiInterface;

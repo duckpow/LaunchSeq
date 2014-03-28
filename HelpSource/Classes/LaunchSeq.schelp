@@ -1,0 +1,154 @@
+TITLE:: LaunchSeq
+summary:: Sequencers to be used with Launchpad
+categories:: Custom classes
+
+DESCRIPTION::
+Holds up to 8 sequencers, controlled and displayed on a Launchpad.
+
+
+CLASSMETHODS::
+
+METHOD:: new
+Initializes the class
+
+ARGUMENT:: tempo
+Tempo of master clock in bpm (the default clock)
+
+METHOD:: initClass
+Initialization of Event types
+NOTE:: Should not be called by the user
+::
+
+INSTANCEMETHODS::
+
+METHOD:: setTempoSubDiv
+Set the subdivision of the individual or all sequencers (code::\delta:: of the code::Pbind::)
+
+ARGUMENT:: fraction
+Set to 1/4 for quaternote's, 1/2 for half notes etc.
+
+ARGUMENT:: track
+Specifies which track. If code::nil:: all tracks will be changed.
+
+METHOD:: allLEDReset
+Resets all LED's on the Launchpad. Different from Launcher.allLEDoff in that any entered sequence will still be visible.
+
+METHOD:: steps
+
+METHOD:: sequencer
+Creates and plays a sequencer. 
+NOTE::Should not be called from the IDE. Is automaticly called from the launchpad.::
+
+METHOD:: instruments
+
+METHOD:: changeTempoFactor
+Changes subdivision of sequencers by a factor.
+
+ARGUMENT:: factor
+The factor of change: code::\new_delta = factor * \old_delta::
+
+ARGUMENT:: track
+Specifies which track. If code::nil:: all tracks will be changed.
+
+METHOD:: midiInterface
+Holds a MIDIdef for the grid.
+
+METHOD:: stop
+Stops any or all sequencers
+
+ARGUMENT:: tracks
+_
+DEFINITIONLIST::
+##Simple Number || Stops track at index.
+##Array || Stops tracks at all indecies specified in the array.
+##code::nil:: || Stops all tracks.
+::
+
+METHOD:: clock
+
+METHOD:: midiPlayer
+Holds MIDIdef for playing sequences from the Launchpad.
+
+METHOD:: notes
+Array of all beats
+
+METHOD:: bindSequencer
+NOTE::Should not be called by user::
+
+METHOD:: stepSize
+Array holding individual code::\delta:: values for each track.
+
+METHOD:: startNote
+
+METHOD:: tempo
+Sets tempo i bpm.
+
+ARGUMENT:: bpm
+Any reasonable tempo. 
+
+METHOD:: subDivs
+Array holding posible subdivision.
+
+METHOD:: trackLEDreset
+Resets LED's of a single track.
+
+ARGUMENT:: track
+Index of track.
+
+METHOD:: play
+Plays one, any or all sequencers. Similar to stop.
+
+ARGUMENT:: tracks
+Which track(s) - see stop.
+
+METHOD:: init
+Called when LaunchSeq is initialized by the .new method.
+
+METHOD:: players
+
+METHOD:: seqLength
+Set length of sequence.
+
+ARGUMENT:: length
+Any value from 1 to 8.
+NOTE::THis method is quantised - Change is not instant::
+
+ARGUMENT:: track
+Index of track. If code::nil:: length of all sequencers will be changed.
+
+METHOD:: setInstrument
+Ties a SynthDef to a particular sequence.
+
+ARGUMENT:: track
+Index of track
+
+ARGUMENT:: type
+Not currently in use!
+
+ARGUMENT:: synthName
+Name of the SynthDef. Example: code::\MyFirstSynth::
+
+ARGUMENT::  ... args
+Array of arguments for the synthdef, similar to Pbind.
+NOTE::Subject to change::
+
+EXAMPLES::
+
+code::
+l = LaunchSeq.new;
+
+(
+SynthDef(\BD, {arg freq=55, pdecay=0.5, decay=1, rate=1, vol=0.5; var trig, seq, env1, env2, envamp, sig1, sig2;
+	trig = 1;
+	env1 = EnvGen.ar(Env.perc(0.001, pdecay, 1, -15),trig, doneAction: 2)*freq*2;
+	env2 = EnvGen.ar(Env.perc(0.001, pdecay+0.1, 1, -15),trig, doneAction: 2)*freq*3;
+	envamp = EnvGen.ar(Env.perc(0.001, decay, 1, -5),trig, doneAction: 2);
+	sig1 = envamp*SinOsc.ar((freq)+env1);
+	sig2 = envamp*SinOsc.ar((freq)+env2-5);
+	Out.ar(0, vol*Pan2.ar((sig1+sig2)/2));
+}).add;
+)
+
+
+l.setInstrument(0, 0, \BD, \freq, 55, \amp, 0.5, \decay, 1.2);
+::
